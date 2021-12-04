@@ -1,0 +1,299 @@
+---
+title: "Rainfall data: https://grogdata.soest.hawaii.edu/" 
+author: "Elmera Azadpour"
+date: "5/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lubridate)
+library(tidyverse)
+library(ggpubr)
+```
+
+```{r}
+kuli_rain = read.csv("KuliRain_20210512.csv") %>% select(-X)
+
+kuli_rain$date <- as_datetime(kuli_rain$date)
+
+kuli_rain_tidy <- kuli_rain %>% mutate(yr = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date))
+
+kuli_rain_daily <- kuli_rain_tidy %>% 
+  group_by(yr, month,day) %>% 
+  summarise(
+    daily_pcp = sum(rain)
+  ) %>% 
+    mutate(date = make_date(yr, month, day)) %>% 
+  mutate(daily_pcp = daily_pcp/25.4)
+
+kuli_plot_pcp <- ggplot(kuli_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") + 
+  labs(x= "Year", y="Precipitation (in)", title = "Kuli'ou'ou Ridge Rainfall") + 
+  theme_minimal() 
+
+kuli_plot_pcp
+```
+
+## Wailupe Rain
+```{r}
+wailupe_rain = read.csv("WailupeRain_20210512.csv")
+
+wailupe_rain$date <- as_datetime(wailupe_rain$date)
+
+wailupe_rain_tidy <- wailupe_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date))
+
+wailupe_rain_daily <- wailupe_rain_tidy %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(rain)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) %>% 
+  mutate(daily_pcp = daily_pcp/25.4)
+
+wailupe_plot_pcp <- ggplot(wailupe_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Wailupe Fire Station Rainfall") + 
+  theme_minimal()
+
+wailupe_plot_pcp
+```
+
+## Lunalilo Homes Rainfall
+```{r}
+lunalilo_rain = read.csv("LunaliloRain_20210512.csv")
+
+lunalilo_rain$date <- as_datetime(lunalilo_rain$date)
+
+lunalilo_rain_tidy <- lunalilo_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date))
+
+lunalilo_rain_daily <- lunalilo_rain_tidy %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(rain)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) %>% 
+  mutate(daily_pcp = daily_pcp/25.4)
+
+lunalilo_plot_pcp <- ggplot(lunalilo_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Lunalilo Homes Rainfall") + 
+  theme_minimal() 
+
+lunalilo_plot_pcp
+```
+
+## Niu Valley BWS Rainfall
+```{r}
+niuvalley_rain = read.csv("NiuValleyRain_20210512.csv")
+
+niuvalley_rain$date <- as_datetime(niuvalley_rain$date)
+
+niuvalley_rain_tidy <- niuvalley_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date))
+
+niuvalley_rain_daily <- niuvalley_rain_tidy %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(rain)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) %>% 
+  mutate(daily_pcp = daily_pcp/25.4)
+
+niuvalley_plot_pcp <- ggplot(niuvalley_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Niu Valley BWS Rainfall") + 
+  theme_minimal() 
+
+niuvalley_plot_pcp
+```
+
+## Kuli‘ou‘ou 350 BWS Rainfall
+```{r}
+kuli350_rain = read.csv("Kuli350Rain_20210512.csv")
+
+kuli350_rain$date <- as_datetime(kuli350_rain$date)
+
+kuli350_rain_tidy <- kuli350_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date))
+
+kuli350_rain_daily <- kuli350_rain_tidy %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(rain)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) %>% 
+  mutate(daily_pcp = daily_pcp/25.4)
+
+kuli350_plot_pcp <- ggplot(kuli350_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Kuli'ou'ou 350 BWS Rainfall") + 
+  theme_minimal() 
+
+kuli350_plot_pcp
+```
+## Alamuka Street BWS Rainfall
+```{r}
+alamuka_rain = read.csv("AlamukaRain_20210512.csv")
+
+alamuka_rain$date <- as_datetime(alamuka_rain$date)
+
+alamuka_rain_tidy <- alamuka_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date))
+
+alamuka_rain_daily <- alamuka_rain_tidy %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(rain)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) %>% 
+  mutate(daily_pcp = daily_pcp/25.4)
+
+alamuka_plot_pcp <- ggplot(alamuka_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Alamuka Street BWS Rainfall") + 
+  theme_minimal() 
+
+alamuka_plot_pcp
+```
+
+## Hawai'i Loa Ridge Rainfall
+```{r}
+hawaiiloa_rain = read.csv("HawaiiLoaRain_20210512.csv")
+
+hawaiiloa_rain$date <- as_datetime(hawaiiloa_rain$date)
+
+hawaiiloa_rain_tidy <- hawaiiloa_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date))
+
+hawaiiloa_rain_daily <- hawaiiloa_rain_tidy %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(rain)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) %>% 
+  mutate(daily_pcp = daily_pcp/25.4)
+
+hawaiiloa_plot_pcp <- ggplot(hawaiiloa_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Hawai'i Loa Ridge Rainfall") + 
+  theme_minimal() 
+
+hawaiiloa_plot_pcp
+```
+
+## Wiliwilinui Ridge Rainfall
+```{r}
+wili_rain = read.csv("WiliRain_20210512.csv")
+
+wili_rain$date <- as_datetime(wili_rain$date)
+
+wili_rain_tidy <- wili_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date))
+
+wili_rain_daily <- wili_rain_tidy %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(rain)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) %>% 
+  mutate(daily_pcp = daily_pcp/25.4)
+
+wili_plot_pcp <- ggplot(wili_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Wiliwilinui Ridge Rainfall") + 
+  theme_minimal() 
+
+wili_plot_pcp
+```
+
+## Combine Graphs
+```{r}
+# ggarange
+all_plots = ggarrange(wailupe_plot_pcp, kuli_plot_pcp, kuli350_plot_pcp, lunalilo_plot_pcp, niuvalley_plot_pcp, alamuka_plot_pcp, hawaiiloa_plot_pcp, wili_plot_pcp,  ncol = 2, nrow = 4, labels = "AUTO")
+
+
+ggsave("all_pcp_plots.pdf", width = 12, height = 8)
+
+```
+
+## Kuliouou and Wailupe Monthly sum comparison from 2019 - 2021 
+```{r}
+## Kuli'ou'ou Ridge Rainfall
+kuli_rain_monthly_sum <- kuli_rain_daily %>% 
+  group_by(yr,month) %>% 
+  summarise(
+    monthly_pcp = sum(daily_pcp)
+  ) 
+
+## Kuli‘ou‘ou 350 BWS Rainfall
+kuli_350_rain_monthly_sum <- kuli350_rain_daily %>% 
+  group_by(year,month) %>% 
+  summarise(
+    monthly_pcp = sum(daily_pcp)
+  )
+
+## Wailupe Fire Station Rainfall
+wailupe_rain_monthly_sum <- wailupe_rain_daily %>% 
+  group_by(year,month) %>% 
+  summarise(
+    monthly_pcp = sum(daily_pcp)
+  )
+
+kuli_rain_monthly_sum <- as.integer(kuli_rain_monthly_sum$yr)
+  
+
+ggplot() +
+  geom_line(data = kuli_rain_monthly_sum, aes(x=month, y=monthly_pcp, group=yr, color = as.factor(yr)), size = 1) +
+  geom_line(data = kuli_350_rain_monthly_sum, aes(x=month, y=monthly_pcp, group=year, color = as.factor(year)), linetype = "dashed", size =1) +
+  geom_line(data = wailupe_rain_monthly_sum, aes(x=month, y=monthly_pcp, group=year, color = as.factor(year)), linetype = "dotted", size = 1) +
+  scale_color_discrete(name = "Year") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,13,1)) +
+  scale_x_continuous(breaks=seq(1, 12, 1)) +
+  labs( y = "Precipitation (in)", x= "Month") +
+  theme(
+        panel.grid.major.x = element_blank())
+  ggtitle("Sum of Monthly Precipiation: Rainfall Atlas, Oahu, 2000-2012")
+```
+
+## Compare individual storms from SMART atlas 
+```{r}
+kuli_investigate_1 <- kuli_rain_daily %>%
+  filter(daily_pcp > "4.12",
+         daily_pcp < "5.57") ## none 
+
+kuli350_investigate_1 <- kuli350_rain_daily %>% 
+ filter(daily_pcp > "4.12",
+         daily_pcp < "5.57")
+
+wailipe_investigate_1 <- wailupe_rain_daily %>%  
+  filter(daily_pcp > "4.12",
+         daily_pcp < "5.57")  #2021-01-26
+## we only have one potential storm event in Jan 26, 2021 for Wailipe Fire Station
+```
+
+## high resolution precipitation for each site superimposed, hourly 
+```{r}
+
+```
+

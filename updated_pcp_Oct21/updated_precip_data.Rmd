@@ -1,0 +1,411 @@
+---
+title: "Kuli'ou'ou Rainfall Data"
+author: "Elmera Azadpour"
+date: "10/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lubridate)
+library(tidyverse)
+library(ggpubr)
+library(here)
+library(RColorBrewer)
+```
+
+#### This script contains updated hourly rain fall data of Kuli'ou'ou Ridge Rainfall (node-208) and Kuli‘ou‘ou 350 BWS Rainfall (node-213) from https://grogdata.soest.hawaii.edu/
+
+
+### Kuli'ou'ou Ridge Rainfall
+```{r}
+kuli_rain = read.csv(here("updated_pcp_Oct21","KuliRain_20211010.csv")) 
+
+## set date column at class:date and round seconds to nearest hour 
+kuli_rain$date <- as_datetime(kuli_rain$date) %>% round_date(hms(date), unit= "hour") 
+
+kuli_rain<- kuli_rain %>% ## doing this to retain hour timestamp to graph subsetted monthly rain, see below
+  mutate(hourly_pcp = rain/25.4) ## convert from mm to inches
+
+kuli_rain_hourly <- kuli_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date),
+                                       date = make_date(year, month, day))
+
+kuli_rain_daily <- kuli_rain_hourly %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(hourly_pcp)
+  ) %>% 
+    mutate(date = make_date(year, month, day))
+
+kuli_daily_pcp_plot <- ggplot(kuli_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") + 
+  labs(x= "Year", y="Precipitation (in)", title = "Kuli'ou'ou Ridge Rainfall Daily Total") + 
+  theme_minimal() +
+  scale_x_date(date_minor_breaks = "1 month", date_breaks = "2 month") 
+
+kuli_daily_pcp_plot
+
+kuli_hourly_pcp_plot <- ggplot(kuli_rain_hourly, aes(date, hourly_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Kuli'ou'ou Ridge Rainfall Station Rainfall: Hourly") + 
+  theme_minimal()
+
+kuli_hourly_pcp_plot
+
+```
+
+### Kuli‘ou‘ou 350 BWS Rainfall
+```{r}
+kuli350_rain = read.csv(here("updated_pcp_Oct21", "Kuli350Rain_20211010.csv"))
+
+## set date column at class:date and round seconds to nearest hour
+kuli350_rain$date <- as_datetime(kuli350_rain$date) %>% round_date(hms(date), unit= "hour")
+
+kuli350_rain<- kuli350_rain %>% 
+  mutate(hourly_pcp = rain/25.4) ## convert from mm to inches
+
+kuli350_rain_hourly <- kuli350_rain %>% mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date),
+                                       date = make_date(year, month, day))
+
+kuli350_rain_daily <- kuli350_rain_hourly %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(hourly_pcp)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) 
+
+kuli350_daily_pcp_plot <- ggplot(kuli350_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Kuli'ou'ou 350 BWS Rainfall Daily Total") + 
+  theme_minimal() +
+  scale_x_date(date_minor_breaks = "1 month", date_breaks = "2 month") 
+
+kuli350_daily_pcp_plot
+
+kuli_hourly_pcp_plot <- ggplot(kuli350_rain_hourly, aes(date, hourly_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Kuli'ou'ou 350 BWS Rainfall Rainfall Station Rainfall: Hourly") + 
+  theme_minimal()
+
+kuli_hourly_pcp_plot
+```
+
+```{r}
+wailupe_rain = read.csv(here("updated_pcp_Oct21", "WailupeRain_20211010.csv"))
+
+## set date column at class:date and round seconds to nearest hour
+wailupe_rain$date <- as_datetime(wailupe_rain$date) %>% 
+  round_date(hms(date), unit= "hour") 
+
+wailupe_rain<- wailupe_rain %>% 
+  mutate(hourly_pcp = rain/25.4) ## convert from mm to inches
+
+wailupe_rain_hourly <- wailupe_rain %>%  mutate(year = year(date), 
+                                       month = month(date), 
+                                       day = day(date), 
+                                       hour = hour(date),
+                                       date = make_date(year, month, day))
+
+wailupe_rain_daily <- wailupe_rain_hourly %>% 
+  group_by(year, month,day) %>% 
+  summarise(
+    daily_pcp = sum(hourly_pcp)
+  ) %>% 
+    mutate(date = make_date(year, month, day)) 
+
+
+wailupe_daily_pcp_plot <- ggplot(wailupe_rain_daily, aes(date, daily_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Wailupe Fire Station Rainfall") + 
+  theme_minimal()
+
+wailupe_daily_pcp_plot
+
+
+wailupe_hourly_pcp_plot <- ggplot(wailupe_rain_hourly, aes(date, hourly_pcp)) +
+  geom_line(color = "blue") +
+  labs(x= "Year", y="Precipitation (in)", title = "Wailupe Fire Station Rainfall") + 
+  theme_minimal()
+
+wailupe_hourly_pcp_plot
+
+
+```
+
+
+
+### Combine Daily Graphs
+```{r}
+# ggarange
+all_plots = ggarrange( kuli_plot_pcp, kuli350_plot_pcp,  ncol = 1, nrow = 2, labels = "AUTO")
+
+ggsave("all_upd_pcp_plots.jpg", width = 12, height = 8)
+```
+
+## define colors 
+```{r}
+# Define the number of colors you want
+nb.cols <- 18
+mycolors <- colorRampPalette(brewer.pal(8, "Dark2"))(nb.cols)
+
+```
+
+## Superimpose hourly rain totals for 3 sites
+```{r}
+ggplot() +
+  geom_line(data = kuli350_rain_hourly, aes(x=date, y=hourly_pcp), size = 0.5,color="blue") + 
+  geom_line(data = kuli_rain_hourly, aes(x=date, y=hourly_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_hourly, aes(x=date, y=hourly_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,1.5,.25)) +
+  scale_x_date(date_breaks = "2 months" , date_labels = "%b-%y") +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Hourly Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+
+```
+
+
+## Superimpose daily rain totals for 3 sites
+```{r}
+ggplot() +
+  geom_line(data = kuli350_rain_daily, aes(x=date, y=daily_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_daily, aes(x=date, y=daily_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_daily, aes(x=date, y=daily_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,5,.5)) +
+      scale_x_date(date_breaks = "2 months" , date_labels = "%b-%y") +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Daily Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+```
+## lets look at daily pcp in the January 2021 time frame where there was a bigger storm
+```{r}
+kuli350_rain_daily_jan <- kuli350_rain_daily %>% 
+  filter(date >= as.Date("2021-01-01") & date <= as.Date("2021-01-31"))
+
+kuli_rain_daily_jan <- kuli_rain_daily %>% 
+  filter(date >= as.Date("2021-01-01") & date <= as.Date("2021-01-31"))
+
+wailupe_rain_daily_jan <- wailupe_rain_daily %>% 
+  filter(date >= as.Date("2021-01-01") & date <= as.Date("2021-01-31"))
+
+ggplot() +
+  geom_line(data = kuli350_rain_daily_jan, aes(x=date, y=daily_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_daily_jan, aes(x=date, y=daily_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_daily_jan, aes(x=date, y=daily_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,5,.5)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Jan 2021 Daily Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+```
+
+## lets look at the same thing but hourly 
+```{r}
+kuli350_rain_hourly_jan <- kuli350_rain %>% 
+  filter(date >= as.Date("2021-01-01") & date <= as.Date("2021-01-31"))
+
+kuli_rain_hourly_jan <- kuli_rain %>% 
+  filter(date >= as.Date("2021-01-01") & date <= as.Date("2021-01-31"))
+
+wailupe_rain_hourly_jan <- wailupe_rain %>% 
+  filter(date >= as.Date("2021-01-01") & date <= as.Date("2021-01-31"))
+
+ggplot() +
+  geom_line(data = kuli350_rain_hourly_jan, aes(x=date, y=hourly_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_hourly_jan, aes(x=date, y=hourly_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_hourly_jan, aes(x=date, y=hourly_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,1.5,.25)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Jan 2021 Hourly Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+
+
+## Zoom into that big rain even on 01-18-2021
+kuli350_rain_hourly_jan18 <- kuli350_rain %>% 
+  filter(date >= as.Date("2021-01-18") & date <= as.Date("2021-01-20"))
+
+kuli_rain_hourly_jan18 <- kuli_rain %>% 
+  filter(date >= as.Date("2021-01-18") & date <= as.Date("2021-01-20"))
+
+wailupe_rain_hourly_jan18 <- wailupe_rain %>% 
+  filter(date >= as.Date("2021-01-18") & date <= as.Date("2021-01-20"))
+
+ggplot() +
+  geom_line(data = kuli350_rain_hourly_jan18, aes(x=date, y=hourly_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_hourly_jan18, aes(x=date, y=hourly_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_hourly_jan18, aes(x=date, y=hourly_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,1.5,.25)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Jan 18-20, 2021 Hourly Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+
+
+
+
+## Zoom into that other bigger rain even on 01-26-2021
+kuli350_rain_hourly_jan26 <- kuli350_rain %>% 
+  filter(date >= as.Date("2021-01-25") & date <= as.Date("2021-01-27"))
+
+kuli_rain_hourly_jan26 <- kuli_rain %>% 
+  filter(date >= as.Date("2021-01-25") & date <= as.Date("2021-01-27"))
+
+wailupe_rain_hourly_jan26 <- wailupe_rain %>% 
+  filter(date >= as.Date("2021-01-25") & date <= as.Date("2021-01-27"))
+
+ggplot() +
+  geom_line(data = kuli350_rain_hourly_jan26, aes(x=date, y=hourly_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_hourly_jan26, aes(x=date, y=hourly_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_hourly_jan26, aes(x=date, y=hourly_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,1.5,.25)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Jan 25-27, 2021 Hourly Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+
+
+```
+
+
+## March 2021 was another stormy season, lets see what daily variability looks like for the 3 sites 
+```{r}
+kuli350_rain_daily_mar <- kuli350_rain_daily %>% 
+  filter(date >= as.Date("2021-03-01") & date <= as.Date("2021-03-31"))
+
+kuli_rain_daily_mar <- kuli_rain_daily %>% 
+  filter(date >= as.Date("2021-03-01") & date <= as.Date("2021-03-31"))
+
+wailupe_rain_daily_mar <- wailupe_rain_daily %>% 
+  filter(date >= as.Date("2021-03-01") & date <= as.Date("2021-03-31"))
+
+ggplot() +
+  geom_line(data = kuli350_rain_daily_mar, aes(x=date, y=daily_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_daily_mar, aes(x=date, y=daily_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_daily_mar, aes(x=date, y=daily_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,5,.5)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Mar 2021 Daily Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+```
+
+## let's zoom in and see what the March 20201 variability looks like hourly
+```{r}
+kuli350_rain_hourly_mar <- kuli350_rain %>% 
+  filter(date >= as.Date("2021-03-01") & date <= as.Date("2021-03-31"))
+
+kuli_rain_hourly_mar <- kuli_rain %>% 
+  filter(date >= as.Date("2021-03-01") & date <= as.Date("2021-03-31"))
+
+wailupe_rain_hourly_mar <- wailupe_rain %>% 
+  filter(date >= as.Date("2021-03-01") & date <= as.Date("2021-03-31"))
+
+ggplot() +
+  geom_line(data = kuli350_rain_hourly_mar, aes(x=date, y=hourly_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_hourly_mar, aes(x=date, y=hourly_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_hourly_mar, aes(x=date, y=hourly_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,1.5,.25)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Mar 2021 Hourly Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+
+
+
+## Zoom into that bigger rain even on 03-09-2021
+kuli350_rain_hourly_mar9 <- kuli350_rain %>% 
+  filter(date >= as.Date("2021-03-08") & date <= as.Date("2021-03-12"))
+
+kuli_rain_hourly_mar9 <- kuli_rain %>% 
+  filter(date >= as.Date("2021-03-08") & date <= as.Date("2021-03-12"))
+
+wailupe_rain_hourly_mar9 <- wailupe_rain %>% 
+  filter(date >= as.Date("2021-03-08") & date <= as.Date("2021-03-12"))
+
+ggplot() +
+  geom_line(data = kuli350_rain_hourly_mar9, aes(x=date, y=hourly_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_hourly_mar9, aes(x=date, y=hourly_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_hourly_mar9, aes(x=date, y=hourly_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,1.5,.25)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Mar 9-12, 2021 Hourly Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+
+```
+## Zoom into that bigger rain even on 04-29-2021
+```{r}
+
+kuli350_rain_hourly_apr29 <- kuli350_rain %>% 
+  filter(date >= as.Date("2021-04-28") & date <= as.Date("2021-04-30"))
+
+kuli_rain_hourly_apr29 <- kuli_rain %>% 
+ filter(date >= as.Date("2021-04-28") & date <= as.Date("2021-04-30"))
+
+wailupe_rain_hourly_apr29 <- wailupe_rain %>% 
+  filter(date >= as.Date("2021-04-28") & date <= as.Date("2021-04-30"))
+
+ggplot() +
+  geom_line(data = kuli350_rain_hourly_apr29, aes(x=date, y=hourly_pcp), size = 0.5,color="blue") +
+  geom_line(data = kuli_rain_hourly_apr29, aes(x=date, y=hourly_pcp), size = 0.5, color = "seagreen") +
+  geom_line(data = wailupe_rain_hourly_apr29, aes(x=date, y=hourly_pcp), size = 0.5, color = "red") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0,1.5,.25)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("SMART Gage, Apr 28-30, 2021 Hourly Total Precip: Kuli'ou'ou Ridge, Kuli'ou'ou 350 BWS, \n& Wailupe Fire Station")
+
+```
+
+## scatterplot of wailupe precip vs kuliouou precip 
+```{r}
+merged_precip <- merge(kuli_rain, kuli350_rain, by = "date")
+
+merged_wailupe <- merge(merged_precip, wailupe_rain, by = "date") %>% 
+  select(-rain.x, -rain.y, - rain) %>% 
+  rename(kuli_rain_in = hourly_pcp.x, kuli350_rain_in = hourly_pcp.y, wailupe_rain_in= hourly_pcp)
+
+ 
+ggplot(data = merged_wailupe, aes(x =kuli350_rain_in, y= wailupe_rain_in)) + 
+  geom_point() +
+  theme_minimal() 
+
+ggplot(data = merged_wailupe, aes(x =kuli350_rain_in, y= wailupe_rain_in)) + 
+  geom_point() +
+  theme_minimal() +
+  scale_x_continuous(limits=c(0,0.25)) +
+  scale_y_continuous(limits=c(0,0.25)) 
+
+  ggplot(data = merged_wailupe, aes(x =kuli_rain_in, y= wailupe_rain_in)) + 
+    geom_point() +
+    theme_minimal() 
+
+```
+
+## look at scatterplot of daily wailupe precip vs kuliouou precip
+```{r}
+merged_precip_daily <- merge(kuli_rain_daily, kuli350_rain_daily, by = "date")
+
+merged_wailupe_daily <- merge(merged_precip_daily, wailupe_rain_daily, by = "date") %>% 
+  select(-year.x, - month.x, - day.x, -year.y, - month.y, - day.y, -year, - month, - day) %>% 
+  rename(kuli_rain_in = daily_pcp.x, kuli350_rain_in = daily_pcp.y, wailupe_rain_in= daily_pcp)
+
+ggplot(data = merged_wailupe_daily, aes(x =kuli_rain_in, y= wailupe_rain_in)) + 
+  geom_point() +
+  theme_minimal() +
+  labs(x= "Kuli'ou'ou 350 BWS (in)", y = "Wailupe Fire Station (in)")
+
+ggplot(data = merged_wailupe_daily, aes(x =kuli_rain_in, y= wailupe_rain_in)) + 
+  geom_point() +
+  theme_minimal() +
+  scale_x_continuous(limits=c(0,0.25)) +
+  scale_y_continuous(limits=c(0,0.25)) +
+  labs(x= "Kuli'ou'ou 350 BWS (in)", y = "Wailupe Fire Station (in)")
+
+```
+
+
+## hawaii kai, see if comporable 
+```{r}
+
+```
+

@@ -1,0 +1,165 @@
+---
+title: "Paiko vs Wailupe Exploration"
+author: "Elmera Azadpour"
+date: "10/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lubridate)
+library(tidyverse)
+library(here)
+```
+
+## Read in Paiko and Wailupe Valley School (WVS)
+```{r}
+paiko_76_rain = read.csv("NOAA_Paiko_76.csv")
+wailupe_08_rain =  read.csv("NOAA_WailupeHawaiiKai_08.csv")
+wailupe_77_rain =  read.csv("NOAA_WailupeHawaiiKai_77.csv")
+
+##Use lubridate to clean up the dates and times
+wailupe_08_rain$DATE <- ymd(wailupe_08_rain$DATE)
+wailupe_77_rain$DATE <- ymd(wailupe_77_rain$DATE)
+paiko_76_rain$DATE <- mdy(paiko_76_rain$DATE)
+```
+
+## Data Tidying
+```{r}
+## for wailupe 1977-2014
+wailupe_tidy_77 <- wailupe_77_rain %>% 
+  rename(station = STATION, station_name = STATION_NAME, elevation = ELEVATION, 
+         lat = LATITUDE, lon = LONGITUDE, date = DATE, time = TIME, qgag = QGAG, 
+         qgag_flag = Measurement.Flag, qgag_qual = Quality.Flag, qgag_units = Units, 
+         qpcp = QPCP, qpcp_flag = Measurement.Flag.1, qpcp_qual = Quality.Flag.1, 
+         qpcp_units = Units.1) %>% #renames columns
+  filter(station_name == "WAILUPE VALLEY SCHOOL 723.6 HI US") %>% #filter to Wailupe gauge only
+  filter(qpcp != "-9999",
+         qpcp != "999",
+         qpcp != "999.99",
+         qpcp_flag != "g",
+         qpcp_flag != "{",
+         qpcp_flag != "}",
+         qpcp_flag != "[",
+         qpcp_flag != "]",
+         qgag != "-9999.00",
+         qgag != "-9999",
+         qgag_flag != "g",
+         qgag_flag != "V",
+         qgag_flag != "P",
+         qgag_flag != "{",
+         qgag_flag != "}",
+         qgag_flag != "[",
+         qgag_flag != "]") ## removes all flagged data
+
+## wailupe 2008- 2021
+wailupe_tidy_08 <- wailupe_08_rain %>% 
+  rename(station = STATION, station_name = STATION_NAME, elevation = ELEVATION, 
+         lat = LATITUDE, lon = LONGITUDE, date = DATE, time = TIME, qgag = QGAG, 
+         qgag_flag = Measurement.Flag, qgag_qual = Quality.Flag, qgag_units = Units, 
+         qpcp = QPCP, qpcp_flag = Measurement.Flag.1, qpcp_qual = Quality.Flag.1, 
+         qpcp_units = Units.1) %>% #renames columns
+  filter(station_name == "WAILUPE VALLEY SCHOOL 723.6 HI US") %>% #filter to Wailupe gauge only
+  filter(qpcp != "-9999",
+         qpcp != "999",
+         qpcp != "999.99",
+         qpcp_flag != "g",
+         qpcp_flag != "{",
+         qpcp_flag != "}",
+         qpcp_flag != "[",
+         qpcp_flag != "]",
+         qgag != "-9999.00",
+         qgag != "-9999",
+         qgag_flag != "g",
+         qgag_flag != "V",
+         qgag_flag != "P",
+         qgag_flag != "{",
+         qgag_flag != "}",
+         qgag_flag != "[",
+         qgag_flag != "]") ## removes all flagged data
+
+
+
+## paiko 1976- 2020
+paiko_tidy_76 <- paiko_76_rain %>% 
+  rename(station = STATION, station_name = NAME, elevation = ELEVATION, 
+         lat = LATITUDE, lon = LONGITUDE, date = DATE, qpcp = PRCP) %>% #renames columns
+  filter(station_name == "PAIKO DRIVE 723.4, HI US") 
+
+```
+
+```{r}
+wailupe_daily_77 <- wailupe_tidy_77 %>%  
+  group_by(date) %>%
+  summarize(
+    daily_pcp = sum(qpcp),
+    daily_vol = sum(qgag)) ## gives total summed precip data per day. HT is given in inches.
+
+paiko_daily_76 <- paiko_tidy_76 %>%  
+  group_by(date) %>%
+  summarize(
+    daily_pcp = sum(qpcp)) 
+
+```
+
+
+## explore time series 
+```{r}
+wailupe_daily_77$date <- ymd(wailupe_daily_77$date)
+paiko_daily_76$date <- ymd(paiko_daily_76$date)
+
+ggplot() +
+  geom_line(data = wailupe_daily_77, aes(x=date, y=daily_pcp), size = 0.5,color="red") +
+  geom_line(data = paiko_daily_76, aes(x=date, y=daily_pcp), size = 0.5, color = "seagreen") +
+  theme_minimal() + 
+  scale_y_continuous(breaks=seq(0,7,1)) +
+  scale_x_date(date_breaks = "2 years", date_labels = "%Y") +
+  ggtitle("NOAA Daily Total Precip: Wailupe Fire Station and Paiko Drive")
+
+```
+
+```{r}
+SKN_processed_stations = read.csv(here("Paiko","ProcessedOriginalData_Data_in.csv")) %>% 
+  pivot_longer(cols = Jan:Dec, names_to = "Month", values_to = "pcp_in") 
+
+RA_paiko_wailupe_investigation <- SKN_processed_stations %>% 
+   filter(SKN %in% c(723.4, 723.0)) # Wailupe = 723; Paiko = 723.4
+
+RA_paiko <- RA_paiko_wailupe_investigation %>% 
+  filter(SKN %in% c(723.4)) 
+
+RA_wailupe <- RA_paiko_wailupe_investigation %>% 
+  filter(SKN %in% c(723)) 
+
+RA_paiko$Month = factor(RA_paiko$Month, levels=c('Jan','Feb','Mar','Apr', 'May','Jun','Jul', 'Aug','Sep','Oct','Nov','Dec'))
+RA_wailupe$Month = factor(RA_wailupe$Month, levels=c('Jan','Feb','Mar','Apr', 'May','Jun','Jul', 'Aug','Sep','Oct','Nov','Dec'))
+
+ggplot() +
+  geom_line(data = RA_wailupe, aes(x=Year, y=pcp_in), size = 0.5, color="red") +
+  geom_line(data = RA_paiko, aes(x=Year, y=pcp_in), size = 0.5, color = "seagreen") +
+  theme_minimal() + 
+  scale_y_continuous(breaks=seq(0,25,5)) +
+  scale_x_continuous(breaks=seq(1920,2010,10)) +
+  labs( y = "Precipitation (in)", x= "Date") +
+  ggtitle("Rainfall Atlas Monthly Total Precip: Wailupe Fire Station and Paiko Drive") +
+  facet_wrap(~Month)
+
+```
+## scatterplot of wailupe vs paiko 
+```{r}
+merged_precip <- merge(paiko_daily_76, wailupe_daily_77, by = "date") %>%  select(-daily_vol) %>% 
+   rename(wailupe_rain_in = daily_pcp.y, paiko_rain_in = daily_pcp.x) %>% 
+  filter(date >= as.Date("1996-01-04") & date <= as.Date("1996-12-31"))
+
+ 
+ggplot(data = merged_precip, aes(x =paiko_rain_in, y= wailupe_rain_in)) + 
+  geom_point() +
+  theme_minimal() 
+
+ggplot(data = merged_precip, aes(x =paiko_rain_in, y= wailupe_rain_in)) + 
+  geom_point() +
+  theme_minimal() +
+  scale_x_continuous(limits=c(0,1)) +
+  scale_y_continuous(limits=c(0,1)) 
+```
+

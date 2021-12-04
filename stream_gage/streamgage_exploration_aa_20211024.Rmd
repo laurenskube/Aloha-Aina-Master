@@ -1,0 +1,416 @@
+---
+title: "Exploring Kuliouou Stream Discharge"
+author: "Elmera Azadpour"
+date: "10/18/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lubridate)
+library(tidyverse)
+library(ggpubr)
+library(here)
+library(janitor)
+library(chron)
+library(zoo)
+library(RColorBrewer)
+library(ggpubr)
+library(ggpmisc)
+library(sf)
+library(tmap)
+```
+
+
+## Read in Kuliouou Stream guage data from USGS: https://nwis.waterdata.usgs.gov/hi/nwis/uv?cb_00060=on&format=html&site_no=16247900&period=&begin_date=2009-01-01&end_date=2021-10-14
+```{r}
+kuli_discharge = read.csv(here("Kuliouou_Discharge","Kuliouou_Stream_Discharge_20211018.csv"), skip = 25) %>% row_to_names(1) %>% head(-3) %>% 
+  separate(datetime, c("date", "time"), " ") 
+
+kuli_discharge$date <- mdy(kuli_discharge$date)
+kuli_discharge$time <- hm(kuli_discharge$time)
+kuli_discharge$discharge_ft3_s <- as.numeric(kuli_discharge$discharge_ft3_s)
+
+kuli_discharge <- kuli_discharge %>% 
+  mutate(month = month(kuli_discharge$date))
+```
+
+## filter for 2010 range
+```{r}
+kuli_discharge_2010 <- kuli_discharge %>% 
+ filter(date >= as.Date("2010-01-01") & date <= as.Date("2010-10-03"))
+
+kuli_discharge_2009 <- kuli_discharge %>% 
+ filter(date >= as.Date("2009-07-09") & date <= as.Date("2009-12-31"))
+```
+
+## plot 2009 Kuliouou stream discharge
+```{r}
+kuli_discharge_2009_daily <- kuli_discharge_2009 %>%
+  group_by(date) %>%
+  summarize(
+    daily_discharge = sum(discharge_ft3_s)) ## its definetly not accurate to sum discharge, but I just want to see what time periods have lots of discharge
+
+kuli_discharge_2009 %>% 
+ggplot() +
+  geom_line(aes(x=date, y=discharge_ft3_s), color="darkseagreen") +
+  theme_classic() +
+  labs(x="Time (hours)", y="Discharge (cfs)") +
+  scale_x_date(date_breaks = "1 month")  + 
+  ggtitle("Kuliouou 2009 summed discharged cfs")
+```
+
+
+## plot 2010 Kuliouou stream discharge
+```{r}
+
+kuli_discharge_2010_daily <- kuli_discharge_2010 %>%
+  group_by(date) %>%
+  summarize(
+    daily_discharge = sum(discharge_ft3_s)) ## its definetly not accurate to sum discharge, but I just want to see what time periods have lots of discharge
+
+kuli_discharge_2010 %>% 
+ggplot()+
+  geom_line(aes(x=date, y=discharge_ft3_s), color="darkseagreen")+
+  theme_classic()+
+  labs(x="Time (hours)", y="Discharge (cfs)") +
+  scale_x_date(date_breaks = "1 month") 
+
+```
+
+## monthly average to compare to rainfall atlas
+```{r}
+kuli_monthly_average <- kuli_discharge_2010 %>% 
+  group_by(month) %>% 
+   summarize(
+    monthly_average = mean(discharge_ft3_s))
+```
+
+## define colors 
+```{r}
+# Define the number of colors you want
+nb.cols <- 18
+mycolors <- colorRampPalette(brewer.pal(8, "Dark2"))(nb.cols)
+```
+
+
+## lets compare all of Oahu Monthly rainfall (in)
+```{r}
+oahu_monthly = read.csv(here("stream_gage","Oa_in_MonthlyRainfallIndex_1920_2012_CSV.csv")) %>%
+  filter(Year >= 2000) %>% 
+  select(-Ann)
+
+oahu_monthly_long <- oahu_monthly %>% 
+  pivot_longer(cols = Jan:Dec, names_to = "Month", values_to = "pcp_in")
+
+oahu_monthly_long$Month = factor(oahu_monthly_long$Month, levels = month.abb)
+
+ggplot(oahu_monthly_long, aes(x = Year, y=pcp_in)) + 
+  geom_col(aes(fill = Month), position = position_dodge(width=0.5), width = 1.5) +
+  scale_fill_manual(values = mycolors) +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0, 30, 2.5)) +
+  scale_x_continuous(breaks=seq(2000, 2012, 1)) +
+  labs( y = "Precipitation (in)", x= "Year") +
+  ggtitle("Sum of Monthly Precipiation: Rainfall Atlas, Oahu, 2000-2012") 
+
+ggsave("RainfallAtlas_Monthly_Sum_Oahu.png", width = 12, height = 8, dpi =500)
+
+```
+
+## comparing elevation vs precipitaion
+```{r}
+final_stations = read.csv(here("pcpvselevation","FinalStationData_Used_csv.csv")) %>% 
+  select(SKN,Name,Lat_DD,Lon_DD,ElevFT,MinYear,MaxYear, JanAvgIN:AnnAvgIN) 
+
+final_stations_long <- final_stations %>% 
+  pivot_longer(cols = JanAvgIN:AnnAvgIN, names_to = "Month", values_to = "pcp_in") %>% 
+  filter(!pcp_in == -9999.000000) 
+
+final_stations_ann <- final_stations_long %>% 
+  filter(Month == c("AnnAvgIN"))
+
+my.formula <- y ~ x
+
+ggplot(final_stations_ann, aes(x = ElevFT, y= pcp_in)) + 
+  geom_point() +
+  theme_minimal() +
+  labs( y = "Precipitation (in)", x= "Elevation (ft)") +
+  ggtitle("Rainfall Atlas: Annual Average precipitation (in) vs Elevation (ft)")+
+   geom_smooth(method = "lm", se=TRUE, color="red", formula = my.formula) +
+ stat_poly_eq(formula = my.formula, 
+                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                parse = TRUE)
+```
+## Elavation analysis cont. 11/2/2021
+```{r}
+# Pick only leeward side sites that are as close to Kulioiou that you can manage while still having a decent amount of data 
+# 	If we are data limited, we can also plot monthly so there will be 12x as much data
+# Natalie: isolate stations that are just in manalua/honolulu area, even up center of the island is fine too just tracking that leeward side of the Koolau mountain range
+
+# Convert lat/long to simple features points
+oahu_station_points <- final_stations %>% 
+   filter(Lon_DD <= "-158.285" & Lon_DD >= "-157.655") 
+
+oahu_station_tmap <- oahu_station_points %>% 
+  st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326)
+  
+## plot(st_geometry(oahu_station_points), pch=16, col="navy")
+
+tmap_mode("view")
+
+tm_shape(oahu_station_tmap) + 
+  tm_dots()
+
+```
+
+```{r}
+## leeward side of island 
+oahu_station_leeward <- final_stations %>% 
+   filter(Lon_DD >= "-157.655" & Lon_DD <= "-157.910" & Lat_DD >= "21.208" & Lat_DD <= "21.329") %>% 
+  st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326) %>% 
+  mutate_all(~replace(., . == 	-9999.000000, NA))
+
+tmap_mode("view")
+tm_basemap("Stamen.TerrainBackground") +
+tm_shape(oahu_station_leeward ) +
+tm_dots(col = "red")
+
+## windward side of island 
+oahu_station_windward <- final_stations %>% 
+   filter(Lon_DD <= "-157.768" & Lat_DD >= "21.325" ) %>% 
+  st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326)%>% 
+  mutate_all(~replace(., . == 	-9999.000000, NA))
+
+
+# tmap_mode("view")
+# tm_basemap("Stamen.TerrainBackground") +
+# tm_shape(oahu_station_windward) +
+#   tm_dots(col = "red")
+
+
+## sites nearest to Kuliouou
+oahu_station_kuliouou <- final_stations %>% 
+   filter(SKN %in% c(723.40,723.20, 723.00,724.40,720.40)) %>% 
+  st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326)%>% 
+  mutate_all(~replace(., . == 	-9999.000000, NA))
+
+# tmap_mode("view")
+# tm_basemap("Stamen.TerrainBackground") +
+# tm_shape(oahu_station_kuliouou) +
+#   tm_dots(col = "red")
+
+```
+
+## now lets compare the elevation and precipitation
+```{r}
+SKN_processed_stations = read.csv(here("pcpvselevation","ProcessedOriginalData_Data_in.csv")) %>% 
+  pivot_longer(cols = Jan:Dec, names_to = "Month", values_to = "pcp_in") 
+
+
+merged_oahu_station_leeward <-  merge(oahu_station_leeward, SKN_processed_stations, by=c("SKN")) # SKN match
+
+merged_oahu_station_windward <-  merge(oahu_station_windward, SKN_processed_stations, by=c("SKN")) # SKN match
+
+merged_oahu_station_kuliouou <- merge(oahu_station_kuliouou, SKN_processed_stations, by=c("SKN")) # SKN match
+
+my.formula <- y ~ x
+
+ggplot(oahu_station_leeward, aes(x = ElevFT, y= AnnAvgIN)) + 
+  geom_point() +
+  theme_minimal() +
+  labs( y = "Precipitation (in)", x= "Elevation (ft)") +
+  ggtitle("Leeward Koʻolau Rainfall Atlas: Annual Average precipitation (in) vs Elevation (ft)") +
+   geom_smooth(method = "lm", se=TRUE, color="red", formula = my.formula) +
+ stat_poly_eq(formula = my.formula, 
+                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                parse = TRUE)
+
+ggplot(oahu_station_windward, aes(x = ElevFT, y= AnnAvgIN)) + 
+  geom_point() +
+  theme_minimal() +
+  labs( y = "Precipitation (in)", x= "Elevation (ft)") +
+  ggtitle("Windward Koʻolau Rainfall Atlas: Annual Average precipitation (in) vs Elevation (ft)") +
+   geom_smooth(method = "lm", se=TRUE, color="red", formula = my.formula) +
+ stat_poly_eq(formula = my.formula, 
+                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                parse = TRUE)
+
+
+# ggplot(merged_oahu_station_kuliouou, aes(x = ElevFT, y= AnnAvgIN)) + 
+#   geom_point() +
+#   theme_minimal() +
+#   labs( y = "Precipitation (in)", x= "Elevation (ft)") +
+#   ggtitle("Kuliouou Region Oahu Rainfall Atlas: Annual Average precipitation (in) vs Elevation (ft)") +
+#    geom_smooth(method = "lm", se=TRUE, color="red", formula = my.formula) +
+#  stat_poly_eq(formula = my.formula, 
+#                 aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+#                 parse = TRUE) ## only two points with annual averages, not helpful
+
+```
+
+## precip vs elevation for monthly averages 
+```{r}
+# final_stations_elevation_SKN = read.csv(here("pcpvselevation","FinalStationData_Used_csv.csv")) %>% 
+#   select(SKN,ElevFT) 
+
+## looking at monthly avg pcp of elevation vs pcp for windward side
+oahu_station_windward_long <- final_stations %>% 
+   filter(Lon_DD <= "-157.768" & Lat_DD >= "21.325" ) %>% 
+  mutate_all(~replace(., . == 	-9999.000000, NA)) %>% 
+  select(SKN:DecAvgIN, ) %>% 
+    pivot_longer(cols = JanAvgIN:DecAvgIN, names_to = "Month", values_to = "pcp_in")
+
+oahu_station_windward_long$Month <- stringr::str_replace(oahu_station_windward_long$Month, 'AvgIN','')
+
+oahu_station_windward_long$Month = factor(oahu_station_windward_long$Month, levels=c('Jan','Feb','Mar','Apr', 'May','Jun','Jul', 'Aug','Sep','Oct','Nov','Dec'))
+
+my.formula <- y ~ x
+ggplot(oahu_station_windward_long, aes(x = ElevFT, y= pcp_in)) + 
+  geom_point() +
+  theme_minimal() +
+  labs( y = "Precipitation (in)", x= "Elevation (ft)") +
+  ggtitle("Rainfall Atlas: Windward Monthly Average precipitation (in) vs Elevation (ft)") +
+   geom_smooth(method = "lm", se=TRUE, color="red", formula = my.formula) +
+ stat_poly_eq(formula = my.formula, 
+                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                parse = TRUE) + facet_wrap(~Month)
+
+## looking at monthly avg pcp of elevation vs pcp for leeward side
+oahu_station_leeward_long <- final_stations %>% 
+    filter(Lon_DD >= "-157.655" & Lon_DD <= "-157.910" & Lat_DD >= "21.208" & Lat_DD <= "21.329") %>% 
+  mutate_all(~replace(., . == 	-9999.000000, NA)) %>% 
+  select(SKN:DecAvgIN, ) %>% 
+    pivot_longer(cols = JanAvgIN:DecAvgIN, names_to = "Month", values_to = "pcp_in")
+
+oahu_station_leeward_long$Month <- stringr::str_replace(oahu_station_leeward_long$Month, 'AvgIN','')
+
+oahu_station_leeward_long$Month = factor(oahu_station_leeward_long$Month, levels=c('Jan','Feb','Mar','Apr', 'May','Jun','Jul', 'Aug','Sep','Oct','Nov','Dec'))
+
+my.formula <- y ~ x
+ggplot(oahu_station_leeward_long, aes(x = ElevFT, y= pcp_in)) + 
+  geom_point() +
+  theme_minimal() +
+  labs( y = "Precipitation (in)", x= "Elevation (ft)") +
+  ggtitle("Rainfall Atlas: Leeward Monthly Average precipitation (in) vs Elevation (ft)") +
+   geom_smooth(method = "lm", se=TRUE, color="red", formula = my.formula) +
+ stat_poly_eq(formula = my.formula, 
+                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                parse = TRUE) + facet_wrap(~Month)
+
+
+## looking at monthly avg pcp of elevation vs pcp for Kuliouou region
+oahu_station_kuliouou_long <- final_stations %>% 
+    filter(SKN %in% c(723.40,723.20, 723.00,724.40,720.40)) %>% 
+  mutate_all(~replace(., . == 	-9999.000000, NA)) %>% 
+  select(SKN:DecAvgIN) %>% 
+    pivot_longer(cols = JanAvgIN:DecAvgIN, names_to = "Month", values_to = "pcp_in")
+
+oahu_station_kuliouou_long$Month <- stringr::str_replace(oahu_station_kuliouou_long$Month, 'AvgIN','')
+
+oahu_station_kuliouou_long$Month = factor(oahu_station_kuliouou_long$Month, levels=c('Jan','Feb','Mar','Apr', 'May','Jun','Jul', 'Aug','Sep','Oct','Nov','Dec'))
+
+my.formula <- y ~ x
+ggplot(oahu_station_kuliouou_long, aes(x = ElevFT, y= pcp_in)) + 
+  geom_point() +
+  theme_minimal() +
+  labs( y = "Precipitation (in)", x= "Elevation (ft)") +
+  ggtitle("Rainfall Atlas: Kuliouou region monthly average precipitation (in) vs Elevation (ft)") +
+   geom_smooth(method = "lm", se=TRUE, color="red", formula = my.formula) +
+ stat_poly_eq(formula = my.formula, 
+                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                parse = TRUE) + facet_wrap(~Month)
+
+
+
+```
+## windward and leeward of Koʻolau Range
+```{r}
+## leeward side of Koʻolau Range 
+oahu_station_leeward <- final_stations %>% 
+   filter(Lon_DD >= "-158.050" & Lat_DD >= "21.308" & Lat_DD <= "21.586") %>% 
+  st_as_sf(coords = c("Lon_DD", "Lat_DD"), crs = 4326) %>% 
+  mutate_all(~replace(., . == 	-9999.000000, NA))
+
+# tmap_mode("view")
+# tm_basemap("Stamen.TerrainBackground") +
+# tm_shape(oahu_station_leeward ) +
+# tm_dots(col = "red") 
+```
+
+
+
+```{r}
+## Go back to hawaii rain atlas and try to pick out places at comparable altitudes and see what the average difference is as a function of time between those places
+
+
+SKN_processed_stations_comparison <- SKN_processed_stations %>% 
+  filter(SKN %in% c(724.0, 723.4, 722.5, 717.2)) 
+
+ggplot(data = SKN_processed_stations_comparison, aes(x=Year, y=pcp_in, color=factor(SKN))) +
+  geom_line() +
+  theme_minimal() + 
+  scale_color_manual(values = c("red", "blue", "green", "purple"))  +
+scale_y_continuous(breaks=seq(0,20,2)) +
+  labs( y = "Precipitation (in)", x= "Year", title = "Monthly total precip from comparable elevation sites")
+```
+
+
+
+
+
+
+
+
+
+## Filter lat and longs to find precip data that lies in Kuliouous watershed range
+```{r}
+final_stations_kuli_range <- final_stations %>% 
+   filter(Lat_DD >= 21.280 & Lat_DD <= 21.324) %>% 
+  filter(Lon_DD >= -157.729 & Lon_DD <= -157.310) 
+
+## Sweet, we have one site in Kuliouous watershed region --> SKN: 723.40 --> Paiko Drive 
+```
+
+## Exploring this Paiko Drive, Kuliouou Watershed site, monthly avg rainfall
+```{r}
+final_stations_paiko <- final_stations %>% 
+  filter(SKN == 723.40) %>% 
+  select(-AnnAvgIN) %>% 
+  pivot_longer(cols = JanAvgIN:DecAvgIN, names_to = "Month", values_to = "pcp") %>% 
+  separate(Month, c("Month", "Metric"), "Avg")
+
+final_stations_paiko$Month = factor(final_stations_paiko$Month, levels = month.abb)
+
+ggplot(final_stations_paiko, aes(x = Month, y=pcp)) + 
+  geom_col(aes(fill = Month), position = position_dodge(width=0.25), width = 0.5, fill = "blue") +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0, 4, .5)) +
+  labs( y = "Precipitation (in)", x= "Month") +
+  ggtitle("Avg Monthly Precipiation: Rainfall Atlas,  Paiko Drive") 
+
+``` 
+## Paiko Drive annual variability
+```{r}
+paiko_stations_00_07 = read.csv(here("pcpvselevation","ProcessedOriginalData_Data_in.csv")) %>% 
+  filter(SKN == 723.40) %>% 
+  pivot_longer(cols = Jan:Dec, names_to = "Month", values_to = "pcp_in") %>% 
+  filter(Year >= 2000) 
+  
+
+paiko_stations_00_07$Month = factor(paiko_stations_00_07$Month, levels = month.abb)
+
+ggplot(paiko_stations_00_07, aes(x = Year, y=pcp_in)) + 
+  geom_col(aes(fill = Month) , position = position_dodge(width=0.5), width = 0.5) +
+  scale_fill_manual(values = mycolors) +
+  theme_minimal() + 
+    scale_y_continuous(breaks=seq(0, 20, 1)) +
+  labs( y = "Precipitation (in)", x= "Year") +
+  ggtitle("Sum of Monthly Precipiation: Rainfall Atlas, Paiko Drive, 2000-2007")  +
+  theme(panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank())
+
+ggsave("RainfallAtlas_Monthly_Sum_PaikoDr.png", width = 12, height = 8, dpi =500)
+
+```
+
