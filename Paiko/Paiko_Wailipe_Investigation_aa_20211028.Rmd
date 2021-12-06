@@ -14,9 +14,9 @@ library(here)
 
 ## Read in Paiko and Wailupe Valley School (WVS)
 ```{r}
-paiko_76_rain = read.csv("NOAA_Paiko_76.csv")
-wailupe_08_rain =  read.csv("NOAA_WailupeHawaiiKai_08.csv")
-wailupe_77_rain =  read.csv("NOAA_WailupeHawaiiKai_77.csv")
+paiko_76_rain <- read.csv("NOAA_Paiko_76.csv")
+wailupe_08_rain <-  read.csv("NOAA_WailupeHawaiiKai_08.csv")
+wailupe_77_rain <-  read.csv("NOAA_WailupeHawaiiKai_77.csv")
 
 ##Use lubridate to clean up the dates and times
 wailupe_08_rain$DATE <- ymd(wailupe_08_rain$DATE)
@@ -119,7 +119,203 @@ ggplot() +
 ```
 
 ```{r}
-SKN_processed_stations = read.csv(here("Paiko","ProcessedOriginalData_Data_in.csv")) %>% 
+# Wailupe Valley School vs. Paiko Drive
+paiko_daily_76 <- paiko_daily_76 %>% 
+  mutate(year = year(date)) %>% 
+  mutate(month = month(date)) %>% 
+  mutate(day = day(date))
+
+paiko_january_2005 <- paiko_daily_76 %>% 
+  filter(year == 2005) %>% 
+  filter(month == 1)
+
+wailupe_daily_77 <- wailupe_daily_77 %>% 
+  mutate(year = year(date)) %>% 
+  mutate(month = month(date)) %>% 
+  mutate(day = day(date))
+
+wailupe_january_2005 <- wailupe_daily_77 %>% 
+  filter(year == 2005) %>% 
+  filter(month == 1)
+
+#plot January 2005
+ggplot() +
+  geom_line(data = paiko_january_2005, aes(x = day,
+                                           y = daily_pcp)) +
+  geom_point(data = paiko_january_2005, aes(x = day,
+                                           y = daily_pcp)) +
+  geom_line(data = wailupe_january_2005, aes(x = day,
+                                             y = daily_pcp)) +
+  geom_point(data = wailupe_january_2005, aes(x = day,
+                                             y = daily_pcp)) +
+  theme_minimal()
+
+#plot December 2011
+paiko_december_2011 <- paiko_daily_76 %>% 
+  filter(year == 2011) %>% 
+  filter(month == 12) %>% 
+  filter(day <= 24)
+
+wailupe_december_2011 <- wailupe_daily_77 %>% 
+  filter(year == 2011) %>% 
+  filter(month == 12)
+
+ggplot() +
+  geom_line(data = paiko_december_2011, aes(x = day,
+                                           y = daily_pcp,
+                                           color = "blue")) +
+  geom_point(data = paiko_december_2011, aes(x = day,
+                                           y = daily_pcp),
+             color = "blue") +
+  geom_line(data = wailupe_december_2011, aes(x = day,
+                                             y = daily_pcp,
+                                             color = "red")) +
+  geom_point(data = wailupe_december_2011, aes(x = day,
+                                             y = daily_pcp),
+             color = "red") +
+  scale_color_manual(values = c("blue", "red"), labels = c("Paiko", "Wailupe Valley School")) +
+  theme_minimal() +
+  theme(legend.title = element_blank()) +
+  labs(x = "Day",
+       y = "Daily Precipitation",
+       title = "December 2011")
+
+# compare yearly
+paiko_yearly <- paiko_daily_76 %>% 
+  group_by(year) %>% 
+  mutate(sum = sum(daily_pcp)) %>% 
+  select(year, sum) %>% 
+  distinct() %>% 
+  drop_na() %>% 
+  filter(year >= 1996 & year <= 2013)
+
+wailupe_yearly <- wailupe_daily_77 %>% 
+  group_by(year) %>% 
+  mutate(sum = sum(daily_pcp)) %>% 
+  select(year, sum) %>% 
+  distinct() %>% 
+  drop_na()
+
+ggplot() +
+  geom_line(data = paiko_yearly, aes(x = year,
+                                     y = sum,
+                                     color = "blue")) +
+  geom_point(data = paiko_yearly, aes(x = year,
+                                     y = sum),
+             color = "blue") +
+  geom_line(data = wailupe_yearly, aes(x = year,
+                                     y = sum,
+                                     color = "red")) +
+  geom_point(data = wailupe_yearly, aes(x = year,
+                                     y = sum),
+             color = "red") +
+  scale_color_manual(values = c("blue", "red"), labels = c("Paiko", "Wailupe Valley School")) +
+  theme_minimal() +
+  theme(legend.title = element_blank()) +
+  labs(x = "Year",
+       y = "Sum of Precipitation")
+```
+
+```{r}
+# all data
+paiko_wailupe_comp <- merge(paiko_daily_76, wailupe_daily_77, by = "date")
+
+ggplot(data = paiko_wailupe_comp, aes(x = daily_pcp.x,
+                                      y = daily_pcp.y)) +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School")
+
+# for a specified stormy period
+paiko_wailupe_comp_2008_storm <- paiko_wailupe_comp %>% 
+  filter(year.x == 2008) %>% 
+  filter(month.x == 12)
+
+ggplot(data = paiko_wailupe_comp_2008_storm, aes(x = daily_pcp.x,
+                                      y = daily_pcp.y)) +
+  geom_point() +
+  theme_minimal() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School")
+ 
+# for a specified year: 2013
+paiko_wailupe_comp_2013 <- paiko_wailupe_comp %>% 
+  filter(year.x == 2013)
+
+ggplot(data = paiko_wailupe_comp_2013, aes(x = daily_pcp.x,
+                                      y = daily_pcp.y)) +
+  geom_point() +
+  theme_minimal() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School")
+
+# for a specified year: 2008
+paiko_wailupe_comp_2008 <- paiko_wailupe_comp %>% 
+  filter(year.x == 2008)
+
+ggplot(data = paiko_wailupe_comp_2008, aes(x = daily_pcp.x,
+                                      y = daily_pcp.y)) +
+  geom_point() +
+  theme_minimal() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School")
+
+# 2002 January
+paiko_wailupe_comp_2002 <- paiko_wailupe_comp %>% 
+  filter(year.x == 2002) %>% 
+  filter(month.x == 1)
+
+ggplot(data = paiko_wailupe_comp_2002, aes(x = daily_pcp.x,
+                                      y = daily_pcp.y)) +
+  geom_point() +
+  theme_minimal() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School")
+
+# 2011 December
+paiko_wailupe_comp_2011 <- paiko_wailupe_comp %>% 
+  filter(year.x == 2011) %>% 
+  filter(month.x == 12)
+
+ggplot(data = paiko_wailupe_comp_2011, aes(x = daily_pcp.x,
+                                      y = daily_pcp.y)) +
+  geom_point() +
+  theme_minimal() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School",
+       title = "Daily Precipitation December 2011") +
+  geom_smooth(method='lm', formula = y~x) +
+  stat_regline_equation(label.x = 0.25,
+                        label.y = 1) +
+  stat_cor(label.x = 0.25,
+           label.y = 0.8)
+
+# yearly comparison
+paiko_wailupe_comp_yearly <- merge(paiko_yearly, wailupe_yearly, by = "year")
+
+ggplot(data = paiko_wailupe_comp_yearly, aes(x = sum.x,
+                                      y = sum.y)) +
+  geom_point() +
+  theme_minimal() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School",
+       title = "Yearly Precipitation: 1996-2013") +
+  geom_smooth(method='lm', formula = y~x) +
+  stat_regline_equation(label.x = 10,
+                        label.y = 33) +
+  stat_cor(label.x = 10,
+           label.y = 30)
+```
+
+```{r}
+SKN_processed_stations =  read.csv(here("Paiko","ProcessedOriginalData_Data_in.csv"))%>% 
   pivot_longer(cols = Jan:Dec, names_to = "Month", values_to = "pcp_in") 
 
 RA_paiko_wailupe_investigation <- SKN_processed_stations %>% 
