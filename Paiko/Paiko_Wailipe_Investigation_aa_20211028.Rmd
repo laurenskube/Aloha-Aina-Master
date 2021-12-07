@@ -11,6 +11,7 @@ library(lubridate)
 library(tidyverse)
 library(here)
 library(dplyr)
+library(ggplot2)
 ```
 
 ## Read in Paiko and Wailupe Valley School (WVS)
@@ -392,30 +393,186 @@ ggplot() +
   scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
   theme(legend.title = element_blank()) +
   labs(title = "January 28-31, 2005")
+```
 
-
-# March 9-14, 2009
+```{r}
+### 2009 - 2010 (lines up with the streamgage data)
+# March 6-15, 2009
 wailupe_mar_2009 <- wailupe_daily_77 %>% 
   filter(year == 2009) %>% 
   filter(month == 3) %>% 
-  filter(day %in% c(9:14))
+  filter(day %in% c(6:15))
 
 paiko_mar_2009 <- paiko_daily_76 %>% 
   filter(year == 2009) %>% 
   filter(month == 3) %>% 
-  filter(day %in% c(9:14))
+  filter(day %in% c(6:15))
 
 ggplot() +
   geom_line(data = wailupe_mar_2009, aes(x = day,
                                          y = daily_pcp,
                                          color = "blue")) +
+  geom_point(data = wailupe_mar_2009, aes(x = day,
+                                         y = daily_pcp),
+             color = "blue") +
   geom_line(data = paiko_mar_2009, aes(x = day,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  geom_point(data = paiko_mar_2009, aes(x = day,
+                                       y = daily_pcp),
+             color = "red") +
+  
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "March 6-15, 2009")
+
+# December 9-25, 2010
+wailupe_dec_2010 <- wailupe_daily_77 %>% 
+  filter(year == 2010) %>% 
+  filter(month == 12) %>% 
+  filter(day %in% c(9:25))
+
+paiko_dec_2010 <- paiko_daily_76 %>% 
+  filter(year == 2010) %>% 
+  filter(month == 12) %>% 
+  filter(day %in% c(9:25))
+
+ggplot() +
+  geom_line(data = wailupe_dec_2010, aes(x = day,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_point(data = wailupe_dec_2010, aes(x = day,
+                                         y = daily_pcp),
+             color = "blue") +
+  geom_line(data = paiko_dec_2010, aes(x = day,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  geom_point(data = paiko_dec_2010, aes(x = day,
+                                       y = daily_pcp),
+             color = "red") +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "December 9-25, 2010")
+
+# October - November, 2010
+wailupe_nov_2010 <- wailupe_daily_77 %>% 
+  filter(year == 2010) %>% 
+  filter(month %in% c(10,11)) %>% 
+  filter(date >= "2010-10-29" & date <= "2010-11-05")
+
+paiko_nov_2010 <- paiko_daily_76 %>% 
+ filter(year == 2010) %>% 
+  filter(month %in% c(10,11)) %>% 
+  filter(date >= "2010-10-29" & date <= "2010-11-05")
+
+ggplot() +
+  geom_line(data = wailupe_nov_2010, aes(x = date,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_point(data = wailupe_nov_2010, aes(x = date,
+                                         y = daily_pcp),
+             color = "blue") +
+  geom_line(data = paiko_nov_2010, aes(x = date,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  geom_point(data = paiko_nov_2010, aes(x = date,
+                                       y = daily_pcp),
+            color = "red") +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "October - November, 2010")
+
+# all 2009
+wailupe_2009 <- wailupe_daily_77 %>% 
+  filter(year == 2009)
+
+paiko_2009 <- paiko_daily_76 %>% 
+ filter(year == 2009)
+
+ggplot() +
+  geom_line(data = wailupe_2009, aes(x = day,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_line(data = paiko_2009, aes(x = day,
                                        y = daily_pcp,
                                        color = "red")) +
   theme_minimal() +
   scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
   theme(legend.title = element_blank()) +
-  labs(title = "March 9-14, 2009")
+  labs(title = "2009")
+
+# correlation plot 2009
+wailupe_paiko_2009 <- merge(paiko_2009, wailupe_2009, by = "date")
+
+ggplot(data = wailupe_paiko_2009, aes(x = daily_pcp.x,
+                                      y = daily_pcp.y)) +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School",
+       title = "Precipitation 2009") +
+  geom_smooth(method='lm', formula = y~x)
+
+# November - December, 2009
+wailupe_nov_2009 <- wailupe_daily_77 %>% 
+  filter(year == 2009) %>%
+  filter(date >= "2009-11-29" & date < "2009-12-15")
+
+paiko_nov_2009 <- paiko_daily_76 %>% 
+  filter(year == 2009) %>%
+  filter(date >= "2009-11-29" & date <= "2009-12-03")
+
+ggplot() +
+  geom_line(data = wailupe_nov_2009, aes(x = date,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_line(data = paiko_nov_2009, aes(x = date,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  geom_point(data = wailupe_nov_2009, aes(x = date,
+                                         y = daily_pcp),
+             color = "blue") +
+  geom_point(data = paiko_nov_2009, aes(x = date,
+                                       y = daily_pcp),
+             color = "red") +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "November - December, 2009")
+
+# all 2010
+wailupe_2010 <- wailupe_daily_77 %>% 
+  filter(year == 2010)
+
+paiko_2010 <- paiko_daily_76 %>% 
+ filter(year == 2010)
+
+ggplot() +
+  geom_line(data = wailupe_2010, aes(x = day,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_line(data = paiko_2010, aes(x = day,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "2010")
+
+# correlation plot 2010
+wailupe_paiko_2010 <- merge(paiko_2010, wailupe_2010, by = "date")
+
+ggplot(data = wailupe_paiko_2009, aes(x = daily_pcp.x,
+                                      y = daily_pcp.y)) +
+  geom_point() +
+  theme_minimal() +
+  labs(x = "Paiko",
+       y = "Wailupe Valley School",
+       title = "Precipitation 2010") +
+  geom_smooth(method='lm', formula = y~x)
 ```
 
 
