@@ -493,10 +493,10 @@ paiko_2009 <- paiko_daily_76 %>%
  filter(year == 2009)
 
 ggplot() +
-  geom_line(data = wailupe_2009, aes(x = day,
+  geom_line(data = wailupe_2009, aes(x = date,
                                          y = daily_pcp,
                                          color = "blue")) +
-  geom_line(data = paiko_2009, aes(x = day,
+  geom_line(data = paiko_2009, aes(x = date,
                                        y = daily_pcp,
                                        color = "red")) +
   theme_minimal() +
@@ -551,10 +551,10 @@ paiko_2010 <- paiko_daily_76 %>%
  filter(year == 2010)
 
 ggplot() +
-  geom_line(data = wailupe_2010, aes(x = day,
+  geom_line(data = wailupe_2010, aes(x = date,
                                          y = daily_pcp,
                                          color = "blue")) +
-  geom_line(data = paiko_2010, aes(x = day,
+  geom_line(data = paiko_2010, aes(x = date,
                                        y = daily_pcp,
                                        color = "red")) +
   theme_minimal() +
