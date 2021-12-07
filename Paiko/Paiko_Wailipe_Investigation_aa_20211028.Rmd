@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(lubridate)
 library(tidyverse)
 library(here)
+library(dplyr)
 ```
 
 ## Read in Paiko and Wailupe Valley School (WVS)
@@ -313,6 +314,110 @@ ggplot(data = paiko_wailupe_comp_yearly, aes(x = sum.x,
   stat_cor(label.x = 10,
            label.y = 30)
 ```
+
+```{r}
+# continuing to look for storms
+paiko_match <- paiko_daily_76 %>% 
+  filter(year >= 2009 & year <= 2010) %>% 
+  filter(daily_pcp > 0)
+
+wailupe <- wailupe_daily_77 %>% 
+  filter(year >= 2009 & year <= 2010) %>% 
+  filter(daily_pcp > 0)
+
+# Jaunary 4-10, 1996
+wailupe_jan_1996 <- wailupe_daily_77 %>% 
+  filter(year == 1996) %>% 
+  filter(month == 1)
+
+paiko_jan_1996 <- paiko_daily_76 %>% 
+  filter(year == 1996) %>% 
+  filter(month == 1) %>% 
+  filter(day %in% c(4,5,7,10,18,19,24,25,27,28,30))
+
+ggplot() +
+  geom_line(data = wailupe_jan_1996, aes(x = day,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_line(data = paiko_jan_1996, aes(x = day,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "Jaunary 4-10, 1996")
+
+# November 12-16, 1996
+wailupe_nov_1996 <- wailupe_daily_77 %>% 
+  filter(year == 1996) %>% 
+  filter(month == 11) %>% 
+  filter(day %in% c(11:17))
+
+paiko_nov_1996 <- paiko_daily_76 %>% 
+  filter(year == 1996) %>% 
+  filter(month == 11) %>% 
+  filter(day %in% c(11:17))
+
+ggplot() +
+  geom_line(data = wailupe_nov_1996, aes(x = day,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_line(data = paiko_nov_1996, aes(x = day,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "November 12-16, 1996")
+
+# January 28-31, 2005
+wailupe_jan_2005 <- wailupe_daily_77 %>% 
+  filter(year == 2005) %>% 
+  filter(month == 1) %>% 
+  filter(day %in% c(28:31))
+
+paiko_jan_2005 <- paiko_daily_76 %>% 
+  filter(year == 2005) %>% 
+  filter(month == 1) %>% 
+  filter(day %in% c(28:31))
+
+ggplot() +
+  geom_line(data = wailupe_jan_2005, aes(x = day,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_line(data = paiko_jan_2005, aes(x = day,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "January 28-31, 2005")
+
+
+# March 9-14, 2009
+wailupe_mar_2009 <- wailupe_daily_77 %>% 
+  filter(year == 2009) %>% 
+  filter(month == 3) %>% 
+  filter(day %in% c(9:14))
+
+paiko_mar_2009 <- paiko_daily_76 %>% 
+  filter(year == 2009) %>% 
+  filter(month == 3) %>% 
+  filter(day %in% c(9:14))
+
+ggplot() +
+  geom_line(data = wailupe_mar_2009, aes(x = day,
+                                         y = daily_pcp,
+                                         color = "blue")) +
+  geom_line(data = paiko_mar_2009, aes(x = day,
+                                       y = daily_pcp,
+                                       color = "red")) +
+  theme_minimal() +
+  scale_color_manual(values = c("blue", "red"), labels = c("Wailupe", "Paiko")) +
+  theme(legend.title = element_blank()) +
+  labs(title = "March 9-14, 2009")
+```
+
 
 ```{r}
 SKN_processed_stations =  read.csv(here("Paiko","ProcessedOriginalData_Data_in.csv"))%>% 
