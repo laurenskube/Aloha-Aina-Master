@@ -71,21 +71,29 @@ subcatchment_width <- merge(subcatchment_area, subcatchment_length, by.x = "obje
   select(objectid, width_ft)
 ```
 
-
+Subcatchments Input File
 ```{r}
 coordinates_attributes <- merge(subcatchment_coordinates, attributes, by = "objectid") %>% distinct (objectid, .keep_all = TRUE) 
 
 coordinates_attributes <- merge(coordinates_attributes, subcatchment_area, by = "objectid")
 
-coordinates_attributes <- merge(coordinates_attributes, subcatchment_width, by = "objectid") %>% 
-  format(scientific = FALSE)
+coordinates_attributes <- merge(coordinates_attributes, subcatchment_width, by = "objectid")
 
 subc <- coordinates_attributes %>%
   mutate(area_acre = area_sqft*0.0000229568) %>% 
   rename(area = area_acre,
     imperv = percent_impervious,
-    name = objectid) %>% 
-  distinct()
+    name = objectid,
+    slope = mean_slope,
+    curve_number = mean_cn) %>% 
+  distinct() %>% 
+  mutate(width = case_when(
+    width_ft > 400 ~ 400,
+    width_ft <= 400 ~ width_ft 
+  )) %>% 
+  st_set_geometry(NULL)
+
+subc[is.na(subc)] <- 400 
 
 #add columns for "subcatchments" file. 
 subc$rain_gage <- "R1" 
@@ -106,8 +114,58 @@ subc_file <- subc %>%
     ) %>% 
   distinct(name, .keep_all = TRUE)
 
-write.csv(subc_file ,"inp_subcatchments.csv", row.names = FALSE)
+write.csv(subc_file, here("subcatchment_processing","output", "inp_subcatchments.csv"), row.names = FALSE)
+```
 
+Sub Areas
+```{r}
+suba <- subc_file %>% 
+  select(name) %>% 
+  rename(subcatchment = name) %>% 
+  distinct()
 
+suba$n_imperv <- 0.01 #manning's n for impervious surfaces - values from SWMM Manual
+
+suba$n_perv <- 0.4 #manning's n for pervious (natural) surfaces. 0.4 for forested subcatchments. 
+#Later, identify urban subcatchments and input 0.15. - values from SWMM Manual  
+
+suba$s_imperv <- 0.2 #impervious surface depth of depression storage (in) - values in SWMM Manual
+
+suba$s_perv <- 0.3 #pervious (natural) surface depth of depression storage - values in SWMM manual
+
+suba$pctzero <- 0
+suba$RouteTo <- "OUTLET"
+
+#n is for Manning's n, and s is for Depth of Depression Storage.
+
+write.csv(suba, here("subcatchment_processing", "output", "inp_subareas.csv"), row.names = FALSE)
+```
+
+Infiltration
+```{r}
+infil <- subc %>% 
+  select(name,
+         curve_number) %>% 
+  rename(subcatchment = name) %>% 
+  distinct()
+
+infil$Blank <- 0.5 #this is conductivity, however this may have been depreciated in the model
+infil$DryTime <- 7 #units in days
+
+write.csv(infil, here("subcatchment_processing", "output", "inp_infiltration.csv"), row.names = FALSE)
+```
+
+Polygons
+```{r}
+polygons <- subcatchment_coordinates %>%
+  rename(name = objectid,
+         y = lat,
+         x = long) %>% 
+  select(name, x,y) %>% 
+  rename(subcatchment = name) %>% 
+  st_set_geometry(NULL) %>% 
+  distinct()
+
+write.csv(polygons, here("subcatchment_processing", "output", "inp_polygons.csv"), row.names = FALSE)
 ```
 
