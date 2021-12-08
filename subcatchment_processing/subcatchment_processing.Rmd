@@ -1,0 +1,113 @@
+---
+title: "subcatchment_processing"
+author: "Kristin Gill and Genevieve Chiong"
+date: "12/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(janitor)
+library(sf)
+```
+
+Subcatchments
+```{r}
+subcatchments <- read_sf(here("subcatchment_processing", "data", "subcatchments", "subcatchment_vertices.shp")) %>% 
+  select(subcatchme, geometry)
+
+subcatchment_coordinates <- subcatchments %>% 
+  mutate(lat = unlist(map(geometry,1)),
+         long = unlist(map(geometry,2))) %>% 
+  rename(objectid = subcatchme) %>% 
+  select(objectid, lat, long)
+```
+
+Impervious Surfaces Percentage
+```{r}
+impervious_percentage <- read_csv(here("subcatchment_processing", "data", "impervious_kuliouou_percentage.csv")) %>% 
+  rename(percent_impervious = PERCENTAGE) %>% 
+  select("subcatchments_recon_aa_20211027_Id", "percent_impervious")
+```
+
+Slope Percentage
+```{r}
+slope_percentage <- read_csv(here("subcatchment_processing", "data", "slope_weighted_kuliouou.csv")) %>% 
+  select("subcatchments_recon_aa_20211027_Id", "mean_slope")
+```
+
+Curve Number Percentage 
+```{r}
+curve_numbers_percentage <- read_csv(here("subcatchment_processing", "data", "curve_number_weighted_kuliouou.csv")) %>% 
+  select("subcatchments_recon_aa_20211027_Id", "mean_cn")
+```
+
+Merge Data
+```{r}
+merge_cn_slope <- merge(curve_numbers_percentage, slope_percentage, by = "subcatchments_recon_aa_20211027_Id")
+
+attributes <- merge(merge_cn_slope, impervious_percentage, by = "subcatchments_recon_aa_20211027_Id", all.x = TRUE) %>% 
+  rename(objectid = subcatchments_recon_aa_20211027_Id)
+
+attributes[is.na(attributes)] <- 0 
+```
+
+Subcatchment Area and Width
+```{r}
+subcatchment_area <- read_csv(here("subcatchment_processing", "data", "subcatchments_area_sqft.csv")) %>% 
+  rename(objectid = OBJECTID) %>% 
+  rename(area_sqft = Shape_Area) %>% 
+  select(objectid, area_sqft)
+
+subcatchment_length <- read_csv(here("subcatchment_processing", "data", "lengths_subcatchments.csv")) %>% 
+  rename(objectid = OBJECTID) %>% 
+  rename(length_ft = LENGTH) %>% 
+  select(objectid, length_ft)
+
+subcatchment_width <- merge(subcatchment_area, subcatchment_length, by.x = "objectid", all.x= TRUE) %>% 
+  mutate(width_ft = area_sqft/length_ft) %>% 
+  select(objectid, width_ft)
+```
+
+
+```{r}
+coordinates_attributes <- merge(subcatchment_coordinates, attributes, by = "objectid") %>% distinct (objectid, .keep_all = TRUE) 
+
+coordinates_attributes <- merge(coordinates_attributes, subcatchment_area, by = "objectid")
+
+coordinates_attributes <- merge(coordinates_attributes, subcatchment_width, by = "objectid") %>% 
+  format(scientific = FALSE)
+
+subc <- coordinates_attributes %>%
+  mutate(area_acre = area_sqft*0.0000229568) %>% 
+  rename(area = area_acre,
+    imperv = percent_impervious,
+    name = objectid) %>% 
+  distinct()
+
+#add columns for "subcatchments" file. 
+subc$rain_gage <- "R1" 
+subc$outlet <- "J1" 
+subc$curblen <- 0
+
+#arrange
+subc_file <- subc %>% 
+  select(
+    name, 
+    rain_gage, 
+    outlet, 
+    area, 
+    imperv, 
+    width, 
+    slope, 
+    curblen
+    ) %>% 
+  distinct(name, .keep_all = TRUE)
+
+write.csv(subc_file ,"inp_subcatchments.csv", row.names = FALSE)
+
+
+```
+
