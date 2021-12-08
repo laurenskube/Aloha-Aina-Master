@@ -1,0 +1,34 @@
+---
+title: "Curve Numbers"
+author: "Kristin Gill and Genevieve Chiong"
+date: "12/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+```
+
+```{r}
+#Load data for curve numbers from final curve numbers code
+curve_numbers_kuliouou <- read_csv(here("curve_numbers","data","curve_numbers_percentage_kuliouou.csv")) %>% 
+  filter(curve_number_numerical != "NA") 
+
+all_cn_weighted_kuliouou <- curve_numbers_kuliouou %>% 
+  group_by(subcatchments_recon_aa_20211027_Id) %>% #grouping by subcatchment and then doing a weighted mean
+  summarize(mean_cn= weighted.mean(curve_number_numerical, PERCENTAGE))
+
+slopes_kuliouou <- read_csv(here("curve_numbers", "data","slope_kuliouou_percentage.csv"))
+
+slope_weighted_kuliouou <- slopes_kuliouou %>% 
+  rename(slope = gridcode_float) %>% 
+  group_by(subcatchments_recon_aa_20211027_Id) %>% #grouping by subcatchment and then doing a weighted mean
+  summarize(mean_slope=weighted.mean(slope, PERCENTAGE))
+
+write.csv(all_cn_weighted_kuliouou, file = here("curve_numbers","output","curve_number_weighted_kuliouou.csv"))
+  
+write.csv(slope_weighted_kuliouou, file = here("curve_numbers","output","slope_weighted_kuliouou.csv"))
+```
+

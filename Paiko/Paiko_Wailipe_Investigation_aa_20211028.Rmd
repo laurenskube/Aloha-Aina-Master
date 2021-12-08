@@ -565,7 +565,7 @@ ggplot() +
 # correlation plot 2010
 wailupe_paiko_2010 <- merge(paiko_2010, wailupe_2010, by = "date")
 
-ggplot(data = wailupe_paiko_2009, aes(x = daily_pcp.x,
+ggplot(data = wailupe_paiko_2010, aes(x = daily_pcp.x,
                                       y = daily_pcp.y)) +
   geom_point() +
   theme_minimal() +
